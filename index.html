@@ -1,0 +1,437 @@
+<!--
+  Trend Topic Finder
+  Built by Jaren Cudilla — https://engineeredai.net
+  Free to use with attribution. Link back to https://engineeredai.net if you share or fork this.
+  Source: https://github.com/smallware-co/trend-finder
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trend Finder — Smallware</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0d0d; --surface: #161616; --border: #2a2a2a; --border-hover: #3a3a3a;
+    --text: #f0ede8; --text-muted: #888; --text-dim: #555; --accent: #F5A623;
+    --accent-dim: rgba(245,166,35,0.12); --accent-border: rgba(245,166,35,0.3);
+    --info: #4a9eff; --info-dim: rgba(74,158,255,0.1); --warn: #e8941a; --warn-dim: rgba(232,148,26,0.1);
+    --green: #4caf7d; --green-dim: rgba(76,175,125,0.1); --red: #ff6b6b;
+    --radius: 10px; --radius-sm: 6px;
+    --mono: 'Space Mono', monospace; --sans: 'DM Sans', sans-serif;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+  header { border-bottom: 1px solid var(--border); padding: 1.25rem 2rem; display: flex; align-items: center; gap: 12px; }
+  .logo { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: 0.05em; }
+  .logo span { color: var(--text-dim); }
+  .tagline { font-size: 12px; color: var(--text-dim); font-family: var(--mono); border-left: 1px solid var(--border); padding-left: 12px; margin-left: 4px; }
+  main { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem 4rem; }
+  .panel-hero { margin-bottom: 2rem; }
+  .panel-hero h1 { font-family: var(--mono); font-size: clamp(20px, 3.5vw, 28px); font-weight: 700; line-height: 1.2; margin-bottom: 8px; }
+  .panel-hero h1 em { color: var(--accent); font-style: normal; }
+  .panel-hero p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+  .form-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem; }
+  .input-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  input[type="text"], input[type="password"], select {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-family: var(--sans); font-size: 14px; padding: 10px 14px;
+    outline: none; transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--text-dim); }
+  select option { background: #1e1e1e; }
+  .key-input { flex: 1; min-width: 220px; }
+  .model-select { width: 180px; cursor: pointer; }
+  .niche-input { flex: 1; min-width: 220px; }
+  .key-note { font-size: 12px; color: var(--text-dim); font-family: var(--mono); padding: 4px 2px; }
+  .key-note a { color: var(--accent); text-decoration: none; }
+  .divider { border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; padding-bottom: 1.5rem; }
+
+  /* COUNTRY MULTI-SELECT */
+  .country-section { margin-bottom: 1.5rem; }
+  .country-label {
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    letter-spacing: 0.08em; margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .country-label span { color: var(--accent); }
+  .country-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 6px;
+  }
+  .country-chip {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 8px 12px;
+    cursor: pointer; transition: all 0.15s; user-select: none;
+    font-size: 13px; color: var(--text-muted);
+  }
+  .country-chip:hover { border-color: var(--border-hover); color: var(--text); }
+  .country-chip.selected {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .country-chip.disabled { opacity: 0.35; cursor: not-allowed; }
+  .country-chip .check {
+    width: 14px; height: 14px; border: 1px solid var(--border);
+    border-radius: 3px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 9px; transition: all 0.15s;
+  }
+  .country-chip.selected .check { background: var(--accent); border-color: var(--accent); color: #000; }
+  .country-hint { font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-top: 8px; }
+
+  /* RUN ROW */
+  .run-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .run-btn {
+    background: var(--accent); color: #0d0d0d; border: none; border-radius: var(--radius-sm);
+    font-family: var(--mono); font-size: 13px; font-weight: 700; padding: 11px 24px;
+    cursor: pointer; white-space: nowrap; transition: opacity 0.15s, transform 0.1s; letter-spacing: 0.03em;
+  }
+  .run-btn:hover { opacity: 0.88; }
+  .run-btn:active { transform: scale(0.97); }
+  .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .export-btn {
+    background: transparent; color: var(--accent); border: 1px solid var(--accent-border);
+    border-radius: var(--radius-sm); font-family: var(--mono); font-size: 12px; font-weight: 700;
+    padding: 11px 20px; cursor: pointer; white-space: nowrap; transition: all 0.15s; letter-spacing: 0.03em;
+    display: none;
+  }
+  .export-btn:hover { background: var(--accent-dim); }
+  .export-btn.visible { display: block; }
+
+  /* PROGRESS */
+  .progress-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1.5rem; }
+  .progress-item {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    padding: 8px 12px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); transition: all 0.2s;
+  }
+  .progress-item.running { border-color: var(--accent); color: var(--accent); }
+  .progress-item.done { border-color: rgba(76,175,125,0.3); color: var(--green); }
+  .progress-item.error { border-color: rgba(255,107,107,0.3); color: var(--red); }
+  .progress-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; }
+  .progress-item.running .progress-dot { background: var(--accent); animation: pulse 1s infinite; }
+  .progress-item.done .progress-dot { background: var(--green); }
+  .progress-item.error .progress-dot { background: var(--red); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* RESULTS */
+  .country-results { margin-bottom: 2.5rem; }
+  .country-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1rem; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  }
+  .country-title { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: 0.06em; }
+  .count-badge {
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+    background: var(--accent-dim); border: 1px solid var(--accent-border);
+    padding: 2px 10px; border-radius: 20px;
+  }
+  .topic-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.1rem 1.25rem; margin-bottom: 8px;
+    transition: border-color 0.15s; animation: fadeIn 0.3s ease;
+  }
+  .topic-card:hover { border-color: var(--border-hover); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .group-header {
+    font-family: var(--mono); font-size: 11px; color: var(--green);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 1.25rem 0 0.5rem; border-top: 1px solid var(--border); margin-top: 4px;
+  }
+  .group-header:first-child { border-top: none; padding-top: 0; }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .card-num { font-family: var(--mono); font-size: 11px; color: var(--accent); min-width: 24px; padding-top: 2px; }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; line-height: 1.4; }
+  .intent-badge { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border-radius: 4px; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.05em; }
+  .intent-informational { background: var(--info-dim); color: var(--info); border: 1px solid rgba(74,158,255,0.2); }
+  .intent-commercial { background: var(--warn-dim); color: var(--warn); border: 1px solid rgba(232,148,26,0.25); }
+  .intent-navigational { background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border); }
+  .comp-low { background: var(--green-dim); color: var(--green); border: 1px solid rgba(76,175,125,0.25); }
+  .comp-medium { background: var(--warn-dim); color: var(--warn); border: 1px solid rgba(232,148,26,0.25); }
+  .comp-high { background: rgba(255,80,80,0.08); color: var(--red); border: 1px solid rgba(255,80,80,0.2); }
+  .card-meta { display: flex; flex-direction: column; gap: 4px; padding-left: 24px; }
+  .meta-row { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .meta-row .icon { color: var(--text-dim); font-size: 11px; min-width: 14px; padding-top: 2px; }
+  .trend-tag { color: var(--green); font-family: var(--mono); font-size: 11px; }
+  .empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-dim); font-family: var(--mono); font-size: 13px; border: 1px dashed var(--border); border-radius: var(--radius); }
+  .empty-state .big { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+  footer { text-align: center; padding: 2rem; font-size: 12px; color: var(--text-dim); font-family: var(--mono); border-top: 1px solid var(--border); margin-top: 4rem; }
+  footer a { color: var(--text-dim); text-decoration: none; }
+  @media (max-width: 600px) {
+    main { padding: 2rem 1rem 3rem; } header { padding: 1rem; } .tagline { display: none; }
+    .country-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">SMALLWARE<span>.CO</span></div>
+  <div class="tagline">// trend finder</div>
+</header>
+<main>
+  <div class="panel-hero">
+    <h1>Find <em>trending topics</em><br/>by country.</h1>
+    <p>Pick up to 3 countries, enter a niche. Get 20 long-tail, low-competition blog topics per location — grouped by theme, exportable to CSV.</p>
+  </div>
+
+  <!-- KEY + MODEL -->
+  <div class="form-group divider">
+    <div class="input-row">
+      <input type="password" id="apikey" class="key-input" placeholder="Z.AI API key" />
+      <select id="model" class="model-select">
+        <option value="glm-4-flash">GLM-4-Flash (fast)</option>
+        <option value="glm-4.7-flash" selected>GLM-4.7-Flash</option>
+        <option value="glm-4.7">GLM-4.7</option>
+        <option value="glm-4.6">GLM-4.6</option>
+      </select>
+    </div>
+    <div class="key-note">🔒 Key stays in your browser only. Never stored or logged. <a href="https://open.bigmodel.cn/usercenter/apikeys" target="_blank" rel="noopener">Get a free Z.AI key →</a></div>
+  </div>
+
+  <!-- NICHE -->
+  <div class="form-group">
+    <div class="input-row">
+      <input type="text" id="t-niche" class="niche-input" placeholder="e.g. personal finance, home gym, skin care..." />
+    </div>
+  </div>
+
+  <!-- COUNTRY MULTI-SELECT -->
+  <div class="country-section">
+    <div class="country-label">
+      SELECT COUNTRIES <span id="selectedCount">0 / 3 selected</span>
+    </div>
+    <div class="country-grid" id="countryGrid"></div>
+    <div class="country-hint">// select up to 3 countries — results appear as each one completes</div>
+  </div>
+
+  <!-- RUN ROW -->
+  <div class="run-row">
+    <button class="run-btn" id="runBtn" onclick="runTrend()">Find Trends →</button>
+    <button class="export-btn" id="exportBtn" onclick="exportCSV()">↓ export CSV</button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-list" id="progressList"></div>
+
+  <!-- RESULTS -->
+  <div id="results">
+    <div class="empty-state"><div class="big">⌗</div>select countries and run to see trending topics</div>
+  </div>
+
+</main>
+<footer>built with Z.AI GLM · <a href="https://smallware.co">smallware.co</a> · <a href="https://engineeredai.net">engineeredai.net</a></footer>
+
+<script>
+  const COUNTRIES = [
+    'Philippines','United States','United Kingdom','Australia','Canada',
+    'India','Singapore','Malaysia','Indonesia','South Africa',
+    'Nigeria','Germany','France','Brazil','Mexico',
+    'Japan','South Korea','UAE','Saudi Arabia','New Zealand'
+  ];
+
+  let selected = ['Philippines'];
+  let allResults = {};
+  let isRunning = false;
+
+  // Build country chips
+  function buildGrid() {
+    const grid = document.getElementById('countryGrid');
+    grid.innerHTML = COUNTRIES.map(c => `
+      <div class="country-chip ${selected.includes(c) ? 'selected' : ''}" onclick="toggleCountry('${c}')" id="chip-${c.replace(/\s/g,'_')}">
+        <span class="check">${selected.includes(c) ? '✓' : ''}</span>
+        ${c}
+      </div>`).join('');
+    document.getElementById('selectedCount').textContent = selected.length + ' / 3 selected';
+  }
+
+  function toggleCountry(country) {
+    if (isRunning) return;
+    if (selected.includes(country)) {
+      selected = selected.filter(c => c !== country);
+    } else {
+      if (selected.length >= 3) return;
+      selected.push(country);
+    }
+    buildGrid();
+    // Disable unselected chips if 3 selected
+    if (selected.length >= 3) {
+      document.querySelectorAll('.country-chip:not(.selected)').forEach(c => c.classList.add('disabled'));
+    } else {
+      document.querySelectorAll('.country-chip').forEach(c => c.classList.remove('disabled'));
+    }
+  }
+
+  buildGrid();
+
+  function getKey() { return document.getElementById('apikey').value.trim(); }
+  function getModel() { return document.getElementById('model').value; }
+
+  function intentClass(intent) { return 'intent-' + (intent||'informational').toLowerCase().replace(/[^a-z]/g,''); }
+  function compClass(comp) {
+    const c = (comp||'').toLowerCase();
+    if (c.includes('low')) return 'comp-low';
+    if (c.includes('high')) return 'comp-high';
+    return 'comp-medium';
+  }
+
+  function parseTopics(raw) {
+    let clean = raw.replace(/```json|```/gi,'').trim();
+    const arrMatch = clean.match(/\[[\s\S]*\]/);
+    if (arrMatch) clean = arrMatch[0];
+    const parsed = JSON.parse(clean);
+    if (!Array.isArray(parsed)) throw new Error('not an array');
+    return parsed;
+  }
+
+  async function callGLM(sys, usr) {
+    const res = await fetch('https://api.z.ai/api/coding/paas/v4/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getKey() },
+      body: JSON.stringify({ model: getModel(), max_tokens: 3000, messages: [{ role:'system', content:sys },{ role:'user', content:usr }] })
+    });
+    if (!res.ok) { const e = await res.text(); throw new Error('API ' + res.status + ': ' + e.slice(0,80)); }
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || '';
+  }
+
+  function setProgress(country, state, msg) {
+    const id = 'prog-' + country.replace(/\s/g,'_');
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = id;
+      el.className = 'progress-item';
+      el.innerHTML = '<span class="progress-dot"></span><span class="progress-text"></span>';
+      document.getElementById('progressList').appendChild(el);
+    }
+    el.className = 'progress-item ' + state;
+    el.querySelector('.progress-text').textContent = msg;
+  }
+
+  function renderCountryResults(country, topics) {
+    const resultsEl = document.getElementById('results');
+    // Remove empty state if present
+    const empty = resultsEl.querySelector('.empty-state');
+    if (empty) empty.remove();
+
+    const groups = {};
+    topics.forEach(t => { const g = t.group||'General'; if (!groups[g]) groups[g]=[]; groups[g].push(t); });
+
+    let cards = ''; let num = 1;
+    for (const [groupName, items] of Object.entries(groups)) {
+      cards += `<div class="group-header">// ${groupName}</div>`;
+      items.forEach(t => {
+        cards += `<div class="topic-card">
+          <div class="card-top">
+            <span class="card-num">${String(num++).padStart(2,'0')}</span>
+            <span class="card-title">${t.title}</span>
+            <span class="intent-badge ${intentClass(t.intent)}">${t.intent||'info'}</span>
+          </div>
+          <div class="card-meta">
+            <div class="meta-row"><span class="icon">⌕</span><span class="trend-tag">${t.longtail}</span></div>
+            <div class="meta-row"><span class="icon">→</span><span>${t.angle}</span></div>
+            <div class="meta-row" style="gap:10px;">
+              <span class="intent-badge ${compClass(t.competition)}">comp: ${t.competition||'?'}</span>
+              <span class="intent-badge ${compClass(t.cpc_potential==='high'?'low':t.cpc_potential==='low'?'high':'medium')}">CPC: ${t.cpc_potential||'?'}</span>
+            </div>
+          </div>
+        </div>`;
+      });
+    }
+
+    const section = document.createElement('div');
+    section.className = 'country-results';
+    section.id = 'results-' + country.replace(/\s/g,'_');
+    section.innerHTML = `
+      <div class="country-header">
+        <span class="country-title">// ${country}</span>
+        <span class="count-badge">${topics.length} topics</span>
+      </div>
+      ${cards}`;
+    resultsEl.appendChild(section);
+  }
+
+  async function runTrend() {
+    if (isRunning) return;
+    const niche = document.getElementById('t-niche').value.trim();
+    if (!niche) { alert('Enter a niche first.'); return; }
+    if (!getKey()) { alert('Paste your Z.AI API key first.'); return; }
+    if (selected.length === 0) { alert('Select at least one country.'); return; }
+
+    isRunning = true;
+    allResults = {};
+    document.getElementById('runBtn').disabled = true;
+    document.getElementById('runBtn').textContent = 'Running...';
+    document.getElementById('exportBtn').classList.remove('visible');
+    document.getElementById('progressList').innerHTML = '';
+    document.getElementById('results').innerHTML = '';
+
+    const sys = `You are a keyword research and content strategy expert. You MUST respond in English only. Return ONLY a raw JSON array — no markdown, no backticks, no explanation. Just the array starting with [ and ending with ].
+Return exactly 20 blog topic ideas. Focus on: long-tail keywords, low competition, high advertiser value (CPC). Group similar topics under the same group label. Merge near-identical topics.
+JSON format:
+[{"title":"SEO-optimized long-tail title","longtail":"the exact long-tail keyword phrase","angle":"unique hook or angle","intent":"informational","competition":"low","cpc_potential":"high","group":"theme group name"}]
+intent: informational | commercial | navigational
+competition: low | medium | high
+cpc_potential: low | medium | high`;
+
+    for (const country of selected) {
+      setProgress(country, 'running', '// finding topics for ' + country + '...');
+      const usr = `Find 20 long-tail, low-competition, high-CPC blog topic ideas for the niche: "${niche}" specifically trending or high-value in ${country}. Prioritize: questions people search on Google in ${country}, local context where relevant, topics with commercial intent or affiliate potential. Group similar topics together.`;
+      try {
+        const raw = await callGLM(sys, usr);
+        const topics = parseTopics(raw);
+        allResults[country] = topics;
+        setProgress(country, 'done', '// ' + country + ' — ' + topics.length + ' topics found');
+        renderCountryResults(country, topics);
+      } catch(err) {
+        setProgress(country, 'error', '// ' + country + ' — error: ' + err.message);
+        allResults[country] = [];
+      }
+    }
+
+    isRunning = false;
+    document.getElementById('runBtn').disabled = false;
+    document.getElementById('runBtn').textContent = 'Find Trends →';
+
+    // Show export if any results
+    const hasResults = Object.values(allResults).some(r => r.length > 0);
+    if (hasResults) document.getElementById('exportBtn').classList.add('visible');
+  }
+
+  function exportCSV() {
+    const niche = document.getElementById('t-niche').value.trim();
+    const rows = [['Country','Group','Title','Long-tail Keyword','Angle','Intent','Competition','CPC Potential']];
+    for (const [country, topics] of Object.entries(allResults)) {
+      topics.forEach(t => {
+        rows.push([
+          country,
+          t.group||'General',
+          `"${(t.title||'').replace(/"/g,'""')}"`,
+          `"${(t.longtail||'').replace(/"/g,'""')}"`,
+          `"${(t.angle||'').replace(/"/g,'""')}"`,
+          t.intent||'',
+          t.competition||'',
+          t.cpc_potential||''
+        ]);
+      });
+    }
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `trend-finder-${niche.replace(/\s+/g,'-')}.csv`;
+    a.click();
+  }
+
+  document.getElementById('t-niche').addEventListener('keydown', e => { if (e.key==='Enter') runTrend(); });
+</script>
+</body>
+</html>
